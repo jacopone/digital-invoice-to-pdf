@@ -1,36 +1,41 @@
-# This module generates a PDF stream from a [🇮🇹 Digital invoice XML string input](https://www.fatturapa.gov.it/export/fatturazione/it/normativa/f-2.htm)
+# digital-invoice-to-pdf
 
-## TLDR
+Convert Italian [FatturaPA](https://www.fatturapa.gov.it/it/lafatturapa/formatofatturapa/) electronic invoice XML files to PDF.
 
-from [HERE](https://www.fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.2/IT01234567890_FPA02.xml) to [THERE](./assets/example.pdf)
+See an [example output](./assets/example.pdf).
 
-## Example inside your express request
+## Usage
 
-```js
-  request.get(fileUri, async (error, response, body) => {
-    if (error) return 'Remember to manage Errors'
+### As a library
 
-    try {
-      const result = await xmlToPDF(body)
-      try {
-        // RES
-        res.set('Content-Type', 'application/pdf')
-        result.pipe(res)
-      } catch (e) {
-        console.log(`Error occurred while rendering: ${e}`)
-        res.status(500).end()
-      }
-    } catch (error) {
-      logger.error(error)
-      res.status(500)
-      res.send({ error: 'Failed to parse XML', message: error.message })
-    }
-  })
-}
+```ts
+import { xmlToPDF, xmlToJson, xmlToCompactJson } from "./src/index";
+
+const pdfStream = await xmlToPDF(xmlString);
 ```
 
-The module exports also:
+### As a server
 
-a simple `xmlToJson` function that uses [XML2JS](https://github.com/Leonidas-from-XIV/node-xml2js) and returns a typed JSON (check the types DigitalInvoiceJson in types folder)
+The project includes a Fastify server with a file upload endpoint:
 
-the function `xmlToCompactJson` that transform the previous `DigitalInvoiceJson` in a more consistent and smaller `DigitalInvoice` (check the types DigitalInvoice in types folder)
+```bash
+npm run build
+npm start
+# Server listens on http://localhost:3000
+
+# Convert an XML invoice to PDF
+curl -X POST http://localhost:3000/convert \
+  -F "file=@invoice.xml" \
+  --output invoice.pdf
+
+# Specify language (it or de)
+curl -X POST "http://localhost:3000/convert?lang=de" \
+  -F "file=@invoice.xml" \
+  --output invoice.pdf
+```
+
+## Exports
+
+- `xmlToPDF(xml, options?)` -- converts FatturaPA XML to a PDF stream (via [react-pdf](https://react-pdf.org/))
+- `xmlToJson(xml, options?)` -- parses XML to typed JSON using [xml2js](https://github.com/Leonidas-from-XIV/node-xml2js) (see `types/DigitalInvoiceJson`)
+- `xmlToCompactJson(xml, options?)` -- produces a normalized `DigitalInvoice` object (see `types/DigitalInvoice`)
